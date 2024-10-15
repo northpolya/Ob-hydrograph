@@ -1,0 +1,83 @@
+#Открытие csv-файла с данными среднесуточных расходов воды
+import csv
+with open('av_day_water.csv', encoding='utf8') as csvfile:
+    data=csv.reader(csvfile, delimiter = ",")
+    #Преобразование данных из файла в набор нескольких списков путём разделения по ';'
+    counter=0
+    pre_ready_data=[]
+    pre_ready_data_2=[]
+    pre_ready_data_figure=[]
+    for i in data:
+        counter+=1
+        '''Считает количество строк в файле'''
+        if counter>26 and counter<=57:
+            for element in i:
+                each_figure=element.split(';')
+                for m in each_figure:
+                    #Разделение строк по проблему для получения отдельных значений расхода
+                    cut_figure=m.split(' ')
+                    for n in cut_figure:
+                        #Устранение из датасета символов, не цифр, которые не играют роли в значении расхода воды
+                        if n=='_' or n=='^':
+                            l=n
+                            pre_ready_data_2.append(l)
+                            '''Представляет список не нужных значений, которые нужно исключить из итогового списка'''
+                        elif n=='' or n=='-':
+                        #Заполнение пустых строк значениями для правильности формирования списка
+                            z='no_data'
+                            '''Занимает места пустых значений, чтобы при формировании списка не произошло съезжания значений'''
+                            pre_ready_data.append(z)
+                        else:
+                            z=n
+                            pre_ready_data.append(z)
+#Формирование списка строк в годовой список значений расхода воды
+a=len(pre_ready_data)
+year_hydrograph=[]
+ready_hydrograph=[]
+for g in range (1,13):
+    mon_hydro=pre_ready_data[g:a:13]
+    year_hydrograph.extend(mon_hydro)
+#Вырезание из списка пустых значений
+for x in year_hydrograph:
+    if x!='no_data':
+        ready_hydrograph.append(x)
+        '''Формирует готовый список, без пустых значений'''
+fig_ready_hydrograph=[]
+#Преобразование строковых данных в численные
+for j in ready_hydrograph:
+    u=int(j)
+    '''Преобразует цифры в строках в числа'''
+    fig_ready_hydrograph.append(u)
+#Подсёт количества дней в году для построения посноценного графика с 2-мя осями
+date=[]
+for ig in range (1,366):
+    date.append(ig)
+#Подключение библиотек Numpy и Matplotlib для расчёта вспомогательных значений и построения графиков
+import matplotlib.pyplot as plt
+import numpy as np
+#Построение и заливка гидрографа
+whole=plt.plot(date,fig_ready_hydrograph)
+plt.fill_between(date, fig_ready_hydrograph, np.zeros_like(fig_ready_hydrograph), color='blue')
+#Расчёт максимальных и минимальных значений производных для определения периода половодья
+di=np.diff(fig_ready_hydrograph)
+    '''Считает производную в каждой точке графика'''
+mi=min(di)
+ma=max(di)
+lj=(np.where(di==mi))
+gh=(np.where(di==ma))
+    '''Определяет индекс максимального и минимального значения в списке производных'''
+start_polovodie=int(gh[0])
+finish_pol=int(lj[0])
+#Выделение на графике стадии половодья
+polv=plt.plot(date[start_polovodie:finish_pol],fig_ready_hydrograph[start_polovodie:finish_pol])
+plt.fill_between(date[start_polovodie:finish_pol],fig_ready_hydrograph[start_polovodie:finish_pol], np.zeros_like(fig_ready_hydrograph[start_polovodie:finish_pol]), color='green')
+#Оформление гидрографа
+plt.ylabel ('Расход воды, м3/с') 
+plt.xlabel ('День года')
+plt.title('Гидрограф р. Оби в нижнем течении')
+plt.show(whole,polv)
+
+#Расчёт среднегодового расхода и объёма стока
+volume_of_water=sum(fig_ready_hydrograph)
+me_rashod_year=volume_of_water/len(fig_ready_hydrograph)
+print('Среднегодовой расход',me_rashod_year, 'м3/c.', 'Суммарный расход за год', volume_of_water, 'м3/c.')
